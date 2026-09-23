@@ -81,14 +81,14 @@ const DEFAULT_PHOTOS = ["data:image/webp;base64,UklGRj5YAABXRUJQVlA4IDJYAABwIwGd
 
   // ---------- renderer / scene ----------
   const canvas = document.getElementById('gl');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
   renderer.setPixelRatio(Math.min(2, devicePixelRatio));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputEncoding = THREE.sRGBEncoding;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xecebe7);
   scene.fog = new THREE.Fog(0xecebe7, 14, 30);
-  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  const camera = new THREE.PerspectiveCamera(40, 1, 1, 60);   // tight depth range = no flicker between stacked tape layers
   scene.add(new THREE.HemisphereLight(0xffffff, 0xcfcac0, 0.75));
   const sun = new THREE.DirectionalLight(0xffffff, 0.75);
   sun.position.set(-4, 9, 5); sun.castShadow = true;
@@ -183,7 +183,7 @@ const DEFAULT_PHOTOS = ["data:image/webp;base64,UklGRj5YAABXRUJQVlA4IDJYAABwIwGd
   function ribbonPush(rb, p, heading, s, strip) {
     if (rb.n >= MAXPTS) return;
     const nx = Math.cos(heading), nz = -Math.sin(heading);          // perpendicular to motion
-    lift += 0.000012;
+    lift += 0.000012;                          // each new layer sits on top of the older ones
     const y = 0.003 + lift, i = rb.n;
     rb.pos.set([p.x + nx * TAPE_W / 2, y, p.z + nz * TAPE_W / 2, p.x - nx * TAPE_W / 2, y, p.z - nz * TAPE_W / 2], i * 6);
     const u = (s - stripStart) / strip.len;
@@ -243,7 +243,7 @@ const DEFAULT_PHOTOS = ["data:image/webp;base64,UklGRj5YAABXRUJQVlA4IDJYAABwIwGd
     side.scale.set(r, 1, r);
     faces.forEach(f => { f.geometry.dispose(); f.geometry = new THREE.RingGeometry(R_CORE, Math.max(R_CORE + 0.001, r), 96, 1); });
     side.visible = faces[0].visible = faces[1].visible = r > R_CORE + 0.002;
-    roll.position.y = r;
+    roll.position.y = r + 0.003 + lift + 0.004; // always rides on top of the newest tape layer
   }
 
   // ---------- state ----------
